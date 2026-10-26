@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"net"
 	"testing"
+	"time"
 )
 
 func TestBuildParseRoundTrip(t *testing.T) {
@@ -71,5 +73,56 @@ func TestOscStringPadding(t *testing.T) {
 	oscString(&b, "") // 0 chars -> pad 4 -> 4 total
 	if b.Len() != 4 {
 		t.Fatalf("len = %d, want 4", b.Len())
+	}
+}
+
+func TestStream(t *testing.T) {
+	// Discover a free response port.
+	tmp, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	respPort := tmp.LocalAddr().(*net.UDPAddr).Port
+	tmp.Close()
+
+	// Mock AbletonOSC server on an ephemeral port.
+	mock, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+	mockPort := mock.LocalAddr().(*net.UDPAddr).Port
+
+	startAddrCh := make(chan string, 1)
+	go func() {
+		buf := make([]byte, 65536)
+		n, _, _ := mock.ReadFromUDP(buf)
+		gotAddr, _, _ := parseMessage(buf[:n])
+		startAddrCh <- gotAddr
+		reply := buildMessage("/live/song/get/beat", []OscValue{{Type: 'i', I: 42}})
+		_, _ = mock.WriteToUDP(reply, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: respPort})
+	}()
+
+	c := &Client{Host: "127.0.0.1", Port: mockPort, ResponsePort: respPort, Timeout: time.Second}
+
+	var gotAddr string
+	var got []OscValue
+	err = c.Stream("/live/song/start_listen/beat", nil, "/live/song/stop_listen/beat", nil, time.Second,
+		func(addr string, vals []OscValue) error {
+			gotAddr = addr
+			got = vals
+			return nil
+		})
+	if err != nil {
+		t.Fatalf("stream error: %v", err)
+	}
+	if gotAddr != "/live/song/get/beat" {
+		t.Fatalf("got addr %q", gotAddr)
+	}
+	if len(got) != 1 || got[0].I != 42 {
+		t.Fatalf("got %+v", got)
+	}
+	if s := <-startAddrCh; s != "/live/song/start_listen/beat" {
+		t.Fatalf("start addr = %q", s)
 	}
 }

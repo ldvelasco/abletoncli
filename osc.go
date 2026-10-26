@@ -268,11 +268,49 @@ func (c *Client) Query(address string, args []OscValue) (string, []OscValue, err
 		if err != nil {
 			continue
 		}
-		if a == address {
+		if a == "/live/error" || a == address {
 			return a, vals, nil
 		}
 		if !haveFallback {
 			fallbackAddr, fallbackVals, haveFallback = a, vals, true
 		}
 	}
+}
+
+// Stream sends a start_listen message, forwards every incoming OSC message to
+// onMessage for the given duration, then sends a stop_listen message. It holds
+// the response port for the whole duration.
+func (c *Client) Stream(startAddr string, startArgs []OscValue, stopAddr string, stopArgs []OscValue, duration time.Duration, onMessage func(addr string, vals []OscValue) error) error {
+	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("0.0.0.0"), Port: c.ResponsePort})
+	if err != nil {
+		return fmt.Errorf("bind reply port %d: %w", c.ResponsePort, err)
+	}
+	defer conn.Close()
+
+	remote := &net.UDPAddr{IP: net.ParseIP(c.Host), Port: c.Port}
+	if _, err := conn.WriteToUDP(buildMessage(startAddr, startArgs), remote); err != nil {
+		return err
+	}
+
+	_ = conn.SetReadDeadline(time.Now().Add(duration))
+	buf := make([]byte, 65536)
+	for {
+		n, _, err := conn.ReadFromUDP(buf)
+		if err != nil {
+			// Deadline (or any read error) ends the stream normally.
+			break
+		}
+		a, vals, err := parseMessage(buf[:n])
+		if err != nil {
+			continue
+		}
+		if err := onMessage(a, vals); err != nil {
+			return err
+		}
+	}
+
+	if stopAddr != "" {
+		_, _ = conn.WriteToUDP(buildMessage(stopAddr, stopArgs), remote)
+	}
+	return nil
 }
