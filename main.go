@@ -71,6 +71,12 @@ Clip:
   clip-add-notes <track> <clip> <pitch start duration velocity mute>...
   clip-remove-notes <track> <clip> [pitchStart pitchSpan timeStart timeSpan]
 
+Chord:
+  chord <track> <clip> <spec> [dur] [velocity]
+                         Create a clip and write chords/notes
+                         spec examples: "C4,E4,G4" (notes), "Cmaj7" (symbol),
+                         "C Am F G" (progression, one chord per dur)
+
 Scene:
   scene <index>          Fire a scene
   scene-fire-selected <index>

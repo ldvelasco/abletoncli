@@ -488,6 +488,58 @@ func resolveCommand(cmd string, args []string) ([]commandResult, error) {
 		r.address = "/live/clip/remove/notes"
 		return []commandResult{r}, nil
 
+	// ----------------------------------------------------------------- Chord
+	case "chord":
+		// chord <track> <clip> <spec> [duration] [velocity]
+		if len(args) < 3 {
+			return nil, fmt.Errorf("chord requires <track> <clip> <spec>")
+		}
+		track, err := oscInt(args[0], "track index")
+		if err != nil {
+			return nil, err
+		}
+		clip, err := oscInt(args[1], "clip index")
+		if err != nil {
+			return nil, err
+		}
+		chords, err := parseChordSpec(args[2])
+		if err != nil {
+			return nil, err
+		}
+		dur := 4.0
+		if len(args) > 3 {
+			dur, err = strconv.ParseFloat(args[3], 64)
+			if err != nil || dur <= 0 {
+				return nil, fmt.Errorf("invalid chord duration %q (must be > 0)", args[3])
+			}
+		}
+		velocity := 100
+		if len(args) > 4 {
+			velocity, err = strconv.Atoi(args[4])
+			if err != nil || velocity < 0 || velocity > 127 {
+				return nil, fmt.Errorf("invalid velocity %q (0-127)", args[4])
+			}
+		}
+		total := float64(len(chords)) * dur
+
+		addArgs := []OscValue{track, clip}
+		for i, notes := range chords {
+			start := float64(i) * dur
+			for _, pitch := range notes {
+				addArgs = append(addArgs,
+					OscValue{Type: 'i', I: int32(pitch)},
+					OscValue{Type: 'f', F: float32(start)},
+					OscValue{Type: 'f', F: float32(dur)},
+					OscValue{Type: 'i', I: int32(velocity)},
+					OscValue{Type: 'F'},
+				)
+			}
+		}
+		return []commandResult{
+			{address: "/live/clip_slot/create_clip", args: []OscValue{track, clip, OscValue{Type: 'f', F: float32(total)}}},
+			{address: "/live/clip/add/notes", args: addArgs},
+		}, nil
+
 	// ----------------------------------------------------------------- Scene
 	case "scene":
 		if len(args) == 0 {
