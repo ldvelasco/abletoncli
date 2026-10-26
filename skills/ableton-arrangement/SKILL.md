@@ -94,6 +94,28 @@ F#1/42 is closed hi-hat. A four-bar boom-bap pattern can use kicks around beats
 and 8th-note hats. Vary velocities, keep note durations short, and verify via
 `arr-clip-notes` before playback.
 
+## Add a bass line
+
+Add another MIDI track and load a bass preset from the `instruments` category.
+For a warm, sampled tone, `Upright Bass.adv` is available in the standard Browser:
+
+```powershell
+.\abletoncli.exe create-track midi -1
+.\abletoncli.exe tracks
+.\abletoncli.exe raw /live/browser/get/matches instruments "Upright Bass.adv"
+.\abletoncli.exe raw /live/browser/load_item <new-track> instruments "Upright Bass.adv"
+.\abletoncli.exe devices <new-track>
+.\abletoncli.exe arr-midi <new-track> 0 16
+.\abletoncli.exe arr-clips <new-track>
+```
+
+Loading a preset may take longer than the CLI query timeout; use it as an action
+and confirm the device with `devices`. For C–Am–F–G, a simple 4-bar line can use
+C2/G1, A1/E2, F1/C2, and G1/D2 on the corresponding bars, with short pickup
+notes before chord changes. MIDI pitches are C2=36, G1=31, A1=33, E2=40, F1=29,
+and D2=38. Add the notes to the new clip with `arr-clip-add-notes`, then verify
+with `arr-clip-notes`.
+
 ## Load an installed plugin
 
 The custom AbletonOSC Browser endpoints search loadable items in Live's Plugins
