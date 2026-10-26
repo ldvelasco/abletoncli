@@ -1,0 +1,6 @@
+# Build output
+/abletoncli.exe
+
+# Go test binaries and coverage
+*.test
+*.out
