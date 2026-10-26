@@ -68,6 +68,32 @@ C4/E4/G4, A3/C4/E4, F3/A3/C4, and G3/B3/D4. Verify the result:
 .\abletoncli.exe arr-clip-notes <track> <arrangement-index>
 ```
 
+## Add a Drum Rack boom-bap track
+
+Create a separate MIDI track rather than changing an existing instrument track.
+Search the `drums` Browser category for a complete kit and verify its device name
+after loading. A full rack preset is safer than loading a raw sample onto the
+selected track: in Live 11, `Browser.load_item` can insert a sample as a regular
+Simpler instead of placing it on the selected Drum Rack pad.
+
+```powershell
+.\abletoncli.exe create-track midi -1
+.\abletoncli.exe tracks
+.\abletoncli.exe raw /live/browser/get/matches drums "808 Core Kit.adg"
+.\abletoncli.exe raw /live/browser/load_item <new-track> drums "808 Core Kit.adg"
+.\abletoncli.exe devices <new-track>
+.\abletoncli.exe arr-midi <new-track> 0 16
+.\abletoncli.exe arr-clips <new-track>
+```
+
+Loading a kit can take longer than the CLI's query timeout; issue it as an
+action, then verify with `devices` rather than assuming a timeout means failure.
+With the standard Drum Rack mapping, C1/MIDI 36 is kick, D1/38 is snare, and
+F#1/42 is closed hi-hat. A four-bar boom-bap pattern can use kicks around beats
+`0, 2.5, 4, 6.5, 8, 10.5, 12, 14.5`, snares on beats `1, 3, 5, 7, 9, 11, 13, 15`,
+and 8th-note hats. Vary velocities, keep note durations short, and verify via
+`arr-clip-notes` before playback.
+
 ## Load an installed plugin
 
 The custom AbletonOSC Browser endpoints search loadable items in Live's Plugins
