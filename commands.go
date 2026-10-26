@@ -264,6 +264,163 @@ func resolveCommand(cmd string, args []string) ([]commandResult, error) {
 		}}}, nil
 
 	// ----------------------------------------------------------------- Track
+	case "arr-clips":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("arr-clips requires <track>")
+		}
+		track, err := oscInt(args[0], "track index")
+		if err != nil {
+			return nil, err
+		}
+		return []commandResult{
+			{address: "/live/track/get/arrangement_clips/name", args: []OscValue{track}, query: true, trim: 1, label: "names"},
+			{address: "/live/track/get/arrangement_clips/start_time", args: []OscValue{track}, query: true, trim: 1, label: "start beats"},
+			{address: "/live/track/get/arrangement_clips/length", args: []OscValue{track}, query: true, trim: 1, label: "length beats"},
+		}, nil
+
+	case "arr-midi":
+		if len(args) != 3 {
+			return nil, fmt.Errorf("arr-midi requires <track> <start beat> <end beat>")
+		}
+		track, err := oscInt(args[0], "track index")
+		if err != nil {
+			return nil, err
+		}
+		start, err := oscFloat(args[1], "start beat")
+		if err != nil {
+			return nil, err
+		}
+		end, err := oscFloat(args[2], "end beat")
+		if err != nil {
+			return nil, err
+		}
+		return []commandResult{{address: "/live/track/create_midi_clip", args: []OscValue{track, start, end}}}, nil
+
+	case "arr-audio":
+		if len(args) != 3 {
+			return nil, fmt.Errorf("arr-audio requires <track> <absolute-file-path> <position beat>")
+		}
+		track, err := oscInt(args[0], "track index")
+		if err != nil {
+			return nil, err
+		}
+		position, err := oscFloat(args[2], "position beat")
+		if err != nil {
+			return nil, err
+		}
+		return []commandResult{{address: "/live/track/create_audio_clip", args: []OscValue{track, oscStr(args[1]), position}}}, nil
+
+	case "arr-clip-delete":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("arr-clip-delete requires <track> <arrangement-clip-index>")
+		}
+		track, err := oscInt(args[0], "track index")
+		if err != nil {
+			return nil, err
+		}
+		clip, err := oscInt(args[1], "arrangement clip index")
+		if err != nil {
+			return nil, err
+		}
+		return []commandResult{{address: "/live/arrangement_clip/delete", args: []OscValue{track, clip}}}, nil
+
+	case "arr-clip-name":
+		if len(args) < 2 || len(args) > 3 {
+			return nil, fmt.Errorf("arr-clip-name requires <track> <arrangement-clip-index> [name]")
+		}
+		track, err := oscInt(args[0], "track index")
+		if err != nil {
+			return nil, err
+		}
+		clip, err := oscInt(args[1], "arrangement clip index")
+		if err != nil {
+			return nil, err
+		}
+		addr := "/live/arrangement_clip/get/name"
+		vals := []OscValue{track, clip}
+		query := true
+		if len(args) == 3 {
+			addr = "/live/arrangement_clip/set/name"
+			vals = append(vals, oscStr(args[2]))
+			query = false
+		}
+		return []commandResult{{address: addr, args: vals, query: query, trim: 2}}, nil
+
+	case "arr-clip-notes", "arr-clip-remove-notes":
+		if len(args) != 2 && len(args) != 6 {
+			return nil, fmt.Errorf("%s requires <track> <arrangement-clip-index> [pitchStart pitchSpan timeStart timeSpan]", cmd)
+		}
+		track, err := oscInt(args[0], "track index")
+		if err != nil {
+			return nil, err
+		}
+		clip, err := oscInt(args[1], "arrangement clip index")
+		if err != nil {
+			return nil, err
+		}
+		vals := []OscValue{track, clip}
+		if len(args) == 6 {
+			pitchStart, err := oscInt(args[2], "pitch start")
+			if err != nil {
+				return nil, err
+			}
+			pitchSpan, err := oscInt(args[3], "pitch span")
+			if err != nil {
+				return nil, err
+			}
+			timeStart, err := oscFloat(args[4], "time start")
+			if err != nil {
+				return nil, err
+			}
+			timeSpan, err := oscFloat(args[5], "time span")
+			if err != nil {
+				return nil, err
+			}
+			vals = append(vals, pitchStart, pitchSpan, timeStart, timeSpan)
+		}
+		if cmd == "arr-clip-notes" {
+			return []commandResult{{address: "/live/arrangement_clip/get/notes", args: vals, query: true, trim: 2}}, nil
+		}
+		return []commandResult{{address: "/live/arrangement_clip/remove/notes", args: vals}}, nil
+
+	case "arr-clip-add-notes":
+		if len(args) < 7 || (len(args)-2)%5 != 0 {
+			return nil, fmt.Errorf("arr-clip-add-notes requires <track> <arrangement-clip-index> followed by groups of 5 (pitch start duration velocity mute)")
+		}
+		track, err := oscInt(args[0], "track index")
+		if err != nil {
+			return nil, err
+		}
+		clip, err := oscInt(args[1], "arrangement clip index")
+		if err != nil {
+			return nil, err
+		}
+		vals := []OscValue{track, clip}
+		for i := 2; i < len(args); i += 5 {
+			pitch, err := oscInt(args[i], "pitch")
+			if err != nil {
+				return nil, err
+			}
+			start, err := oscFloat(args[i+1], "start")
+			if err != nil {
+				return nil, err
+			}
+			duration, err := oscFloat(args[i+2], "duration")
+			if err != nil {
+				return nil, err
+			}
+			velocity, err := oscInt(args[i+3], "velocity")
+			if err != nil {
+				return nil, err
+			}
+			mute, err := oscBoolWord(args[i+4])
+			if err != nil {
+				return nil, err
+			}
+			vals = append(vals, pitch, start, duration, velocity, mute)
+		}
+		return []commandResult{{address: "/live/arrangement_clip/add/notes", args: vals}}, nil
+
 	case "tracks":
 		return []commandResult{{address: "/live/song/get/track_names", query: true}}, nil
 

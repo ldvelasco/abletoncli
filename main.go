@@ -41,6 +41,16 @@ Song:
 
 Track:
   tracks                 List track names
+  arr-clips <track>      List Arrangement clips (name, start and length)
+  arr-midi <track> <start> <end>
+                         Create a MIDI clip in Arrangement (Live 11+)
+  arr-audio <track> <file> <position>
+                         Add an audio file to Arrangement (Live 12.0.5+)
+  arr-clip-delete <track> <index>
+  arr-clip-name <track> <index> [name]
+  arr-clip-notes <track> <index> [pitchStart pitchSpan timeStart timeSpan]
+  arr-clip-add-notes <track> <index> <pitch start duration velocity mute>...
+  arr-clip-remove-notes <track> <index> [pitchStart pitchSpan timeStart timeSpan]
   volume <track> [val]   Get or set track volume
   pan <track> [val]      Get or set track panning
   send <track> <send> [val]

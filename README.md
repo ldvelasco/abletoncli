@@ -13,6 +13,11 @@ implementado a mano sobre la librería estándar.
    - Carpeta: `Documents\Ableton\User Library\Remote Scripts\AbletonOSC`
    - En Live: `Preferences > Link / Tempo / MIDI > Control Surface = AbletonOSC`.
    - Debe aparecer el mensaje *"AbletonOSC: Listening for OSC on port 11000"*.
+3. Para crear clips en Arrangement, instala el AbletonOSC modificado de
+   `./abletonosc` (rama `feature/arrangement-clips`). `arr-midi` funciona desde
+   Live 11 usando un slot temporal; `arr-audio` requiere Live 12.0.5 o superior.
+   Copia el contenido de esa carpeta a `Documents\Ableton\User Library\Remote Scripts\AbletonOSC`
+   y reinicia Live; no copies solo su subcarpeta `abletonosc`.
 
 ## Compilar
 
@@ -66,6 +71,14 @@ Flags principales:
 | Comando | Dirección OSC | Respuesta |
 |---------|---------------|-----------|
 | `tracks` | `/live/song/get/track_names` | sí |
+| `arr-clips <track>` | `/live/track/get/arrangement_clips/{name,start_time,length}` | sí |
+| `arr-midi <track> <start> <end>` | `/live/track/create_midi_clip` | no |
+| `arr-audio <track> <file> <position>` | `/live/track/create_audio_clip` | no |
+| `arr-clip-delete <track> <index>` | `/live/arrangement_clip/delete` | no |
+| `arr-clip-name <track> <index> [name]` | get/set name | sí al consultar |
+| `arr-clip-notes <track> <index> [...]` | `/live/arrangement_clip/get/notes` | sí |
+| `arr-clip-add-notes <track> <index> ...` | `/live/arrangement_clip/add/notes` | no |
+| `arr-clip-remove-notes <track> <index> [...]` | `/live/arrangement_clip/remove/notes` | no |
 | `volume <track> [val]` | `/live/track/get|set volume` | sí |
 | `pan <track> [val]` | `/live/track/get|set panning` | sí |
 | `send <track> <send> [val]` | `/live/track/get|set send` | sí |
@@ -101,6 +114,27 @@ Flags principales:
 | `clip-notes <track> <clip> [pitchStart pitchSpan timeStart timeSpan]` | get notes | sí |
 | `clip-add-notes <track> <clip> <pitch start duration velocity mute>...` | add notes | no |
 | `clip-remove-notes <track> <clip> [...]` | remove notes | no |
+
+### Arrangement
+
+Los índices de clips de Arrangement corresponden al orden actual de
+`track.arrangement_clips`; vuelve a consultar `arr-clips` después de crear o
+borrar clips antes de reutilizar un índice. Los tiempos y duraciones se expresan
+en beats. `arr-midi` recibe inicio y fin (no duración). `arr-audio` requiere la
+ruta absoluta de un archivo de audio compatible. La edición de notas usa tiempos
+relativos al clip.
+
+```powershell
+.\abletoncli.exe arr-midi 0 0 16
+.\abletoncli.exe arr-clips 0
+.\abletoncli.exe arr-clip-name 0 0 "Intro"
+.\abletoncli.exe arr-clip-add-notes 0 0 60 0 1 100 off 64 0 1 100 off
+```
+
+La interfaz Arrangement requiere tanto este CLI actualizado como el Remote
+Script modificado en `./abletonosc`. En Live 11, `arr-midi` usa un slot de
+Session temporal y lo elimina después de duplicarlo al Arrangement. `arr-audio`
+requiere Live 12.0.5+. `arr-midi` crea un clip vacío y `arr-clip-add-notes` lo rellena.
 
 ### Chord
 
