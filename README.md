@@ -102,6 +102,43 @@ Flags principales:
 | `clip-add-notes <track> <clip> <pitch start duration velocity mute>...` | add notes | no |
 | `clip-remove-notes <track> <clip> [...]` | remove notes | no |
 
+### Chord
+
+| Comando | Descripción |
+|---------|-------------|
+| `chord <track> <clip> <spec> [dur] [velocity]` | Crea un clip MIDI y escribe acordes/notas |
+
+`<spec>` acepta:
+
+- Notas explícitas separadas por coma: `C4,E4,G4`
+- Símbolos de acorde: `Cmaj7`, `Am`, `G7`, `F#m7`, `Bdim`, `Csus4`…
+- Progresión (acordes separados por espacio): `"C Am F G"`
+- Una nota sola: `C4`
+
+`dur` es la duración de cada acorde en beats (default 4). La longitud del clip
+es `num_acordes × dur`. `velocity` va de 0 a 127 (default 100).
+
+Ejemplos:
+
+```powershell
+.\abletoncli.exe chord 0 0 Cmaj7
+.\abletoncli.exe chord 0 0 "C Am F G"          # progresión, 4 beats cada uno
+.\abletoncli.exe chord 0 0 "C Am F G" 1        # 1 beat por acorde
+.\abletoncli.exe chord 0 0 "C4,E4,G4" 2 110    # notas explícitas, dur 2, vel 110
+```
+
+Notas:
+
+- `chord` crea un clip nuevo en el slot; si ya existía uno, bórralo antes con
+  `slot-delete`.
+- Una letra sola (`C`) es un acorde mayor; para una nota sola usa la octava
+  explícita (`C4`).
+- `C7` se interpreta como acorde de séptima dominante, no como la nota C7.
+- Middle C = `C4` = 60.
+
+Calidades de acorde soportadas: mayor (`C`), menor (`Cm`), `6`, `m6`, `7`,
+`maj7`, `m7`, `m7b5`, `dim`, `aug`, `sus2`, `sus4`.
+
 ### Scene
 
 | Comando | Dirección OSC | Respuesta |
